@@ -61,21 +61,21 @@ void Joy ::PS2_readValue() {
   if (type == 1) {
     read_gamepad(false, vibrate);
     Str_PS2.move[0] = ButtonPressed(PSB_PAD_UP);
-    Str_PS2.move[1] = Button(PSB_PAD_RIGHT);
+    Str_PS2.move[1] = ButtonPressed(PSB_PAD_RIGHT);
     Str_PS2.move[2] = ButtonPressed(PSB_PAD_DOWN);
-    Str_PS2.move[3] = Button(PSB_PAD_LEFT);
+    Str_PS2.move[3] = ButtonPressed(PSB_PAD_LEFT);
 
     Str_PS2.attack[0] = Button(PSB_GREEN);
     Str_PS2.attack[1] = Button(PSB_RED);
     Str_PS2.attack[2] = ButtonPressed(PSB_PINK);
     Str_PS2.attack[3] = Button(PSB_BLUE);
-    Str_PS2.attack[4] = ButtonPressed(PSB_L1);
+    Str_PS2.attack[4] = Button(PSB_L1);
     Str_PS2.attack[5] = ButtonPressed(PSB_R1);
-    Str_PS2.attack[6] = ButtonPressed(PSB_L2);
-    Str_PS2.attack[7] = ButtonPressed(PSB_R2);
+    Str_PS2.attack[6] = Button(PSB_L2);
+    Str_PS2.attack[7] = Button(PSB_R2);
 
-    Str_PS2.seting[0] = ButtonPressed(PSB_START);
-    Str_PS2.seting[1] = ButtonPressed(PSB_SELECT);
+    Str_PS2.seting[0] = ButtonPressed(PSB_SELECT);
+    Str_PS2.seting[1] = Button(PSB_START);
 
     vibrate = Analog(PSAB_BLUE);
 
@@ -164,7 +164,7 @@ void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status) {
 #endif
 }
 
-void ABU_Joy ::Setup_Joy_ESPNOW(const uint8_t broadAddress[]){
+void ABU_Joy ::Setup_Joy_ESPNOW(const uint8_t broadAddress[]) {
   // memcpy(&broadcastAddress, &broadAddress, sizeof(broadAddress));
   broadcastAddress[0] = broadAddress[0];
   broadcastAddress[1] = broadAddress[1];
@@ -212,15 +212,15 @@ void ABU_Joy ::Joy_Sendvalue_ESPNOW() {
     Serial.println(" | Sending error");
 #endif
   }
-  delay(50);
+  delay(10);  //COMMUNICATION
 }
 #endif
 
-void ABU_Joy ::Print_GEAR(uint8_t button_speedUP, uint8_t button_speedDOWN) {
-  if (move[button_speedUP] == 1) {
-    Gear_joy++;
-  } else if (move[button_speedDOWN] == 1) {
-    Gear_joy--;
+void ABU_Joy ::Print_GEAR(uint8_t button_speedDOWN, uint8_t button_speedUP) {
+  if (attack[button_speedUP] == 1) {
+    Gear_joy = 2;
+  } else if (attack[button_speedDOWN] == 1) {
+    Gear_joy = 1;
   }
 
   if (Gear_joy < 0) {
@@ -291,18 +291,44 @@ void Wheel ::Wheel_equation(float scaled[]) {
   inverts[2] = ((scaled[0] + scaled[1] + (ROBOT_TOTAL_LEN * scaled[2])) / Wheels_redius);  // RF
   inverts[3] = ((scaled[0] - scaled[1] + (ROBOT_TOTAL_LEN * scaled[2])) / Wheels_redius);  // RB
 
-  for (uint8_t i = 0; i < 4; i++) {
-    if (inverts[i] > (max_wheel_speed[Gear])) {
-      inverts[i] = max_wheel_speed[Gear];
-    } else if (inverts[i] < (-max_wheel_speed[Gear])) {
-      inverts[i] = -max_wheel_speed[Gear];
+  // for (uint8_t i = 0; i < 4; i++) {
+  //   if (inverts[i] > (max_wheel_speed[Gear])) {
+  //     inverts[i] = max_wheel_speed[Gear];
+  //   } else if (inverts[i] < (-max_wheel_speed[Gear])) {
+  //     inverts[i] = -max_wheel_speed[Gear];
+  //   }
+  // }
+  
+  if (Gear == 1) {
+    for (uint8_t i = 0; i < 4; i++) {
+      if (inverts[i] > (max_wheel_speed_1[i])) {
+        inverts[i] = max_wheel_speed_1[i];
+      } else if (inverts[i] < (-max_wheel_speed_1[i])) {
+        inverts[i] = -max_wheel_speed_1[i];
+      }
+    }
+  }else if (Gear == 2) {
+    for (uint8_t i = 0; i < 4; i++) {
+      if (inverts[i] > (max_wheel_speed_2[i])) {
+        inverts[i] = max_wheel_speed_2[i];
+      } else if (inverts[i] < (-max_wheel_speed_2[i])) {
+        inverts[i] = -max_wheel_speed_2[i];
+      }
+    }
+  }else if (Gear == 3) {
+    for (uint8_t i = 0; i < 4; i++) {
+      if (inverts[i] > (max_wheel_speed_3[i])) {
+        inverts[i] = max_wheel_speed_3[i];
+      } else if (inverts[i] < (-max_wheel_speed_3[i])) {
+        inverts[i] = -max_wheel_speed_3[i];
+      }
     }
   }
 
-  Wheels[0] = round(inverts[0]);
-  Wheels[1] = round(inverts[1]);
-  Wheels[2] = round(inverts[2]);
-  Wheels[3] = round(inverts[3]);
+  Wheels[0] = round(inverts[0]);  // LF
+  Wheels[1] = round(inverts[1]);  // LB
+  Wheels[2] = round(inverts[2]);  // RF
+  Wheels[3] = round(inverts[3]);  // RB
 }
 
 void Wheel ::GEAR() {
@@ -326,6 +352,20 @@ void Wheel ::GEAR() {
     SCALE_FACTOR[2] = SCALE_FACTOR_Gear_3;  //SCALE_FACTOR_Z
   } else {
     Gear = 3;
+  }
+}
+
+void Wheel ::Ramp(float speed[]) {
+  for (uint8_t n = 0; n < 4; n++) {
+    eror_speed[n] = speed[n] - Past_speed[n];
+    Proportional[n] = eror_speed[n] * Kp;  //P
+    integnator[n] += eror_speed[n] * Ki;   //I
+
+    Ramp_speed[n] = Proportional[n] + integnator[n];  //OUTPUT PID
+
+    Past_speed[n] = Ramp_speed[n];
+
+    Ramp_speed[n] = round(Ramp_speed[n]);
   }
 }
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -554,7 +594,7 @@ void ABU_ROBOT ::Readvalue_nrf24() {
 }
 
 void ABU_ROBOT ::Readvalue_slave(int SLAVE_ADDR, int ANSWERSIZE) {
-  delay(50);
+  delay(10);  //COMMUNICATION
   // Write a charatre to the Slave
   Wire.beginTransmission(SLAVE_ADDR);
   Wire.write("send dataPS_2");
@@ -591,38 +631,38 @@ void ABU_ROBOT ::Readvalue_slave(int SLAVE_ADDR, int ANSWERSIZE) {
 }
 
 void ABU_ROBOT ::Move() {
-  if (Ready == 1) {
-    float _stickValues[4];
-    for (int i = 0; i < 4; ++i) {
-      _stickValues[i] = stickValues[i];
-    }
-
-    Wheel_equation(_stickValues);
-#ifdef DEBUG_Wheel
-    Serial.print("LF : ");
-    Serial.print(Wheels[0]);
-    Serial.print(" LB : ");
-    Serial.print(Wheels[1]);
-    Serial.print(" RF : ");
-    Serial.print(Wheels[2]);
-    Serial.print(" RB : ");
-    Serial.println(Wheels[3]);
-#endif
-    motorDrive_BTS7960(pin_PWM[0], Wheels[0], pin_LPWM[0], pin_RPWM[0]);
-    motorDrive_BTS7960(pin_PWM[1], Wheels[1], pin_LPWM[1], pin_RPWM[1]);
-    motorDrive_BTS7960(pin_PWM[2], Wheels[2], pin_LPWM[2], pin_RPWM[2]);
-    motorDrive_BTS7960(pin_PWM[3], Wheels[3], pin_LPWM[3], pin_RPWM[3]);
-  } else {
-    motorDrive_BTS7960(pin_PWM[0], 0, pin_LPWM[0], pin_RPWM[0]);
-    motorDrive_BTS7960(pin_PWM[1], 0, pin_LPWM[1], pin_RPWM[1]);
-    motorDrive_BTS7960(pin_PWM[2], 0, pin_LPWM[2], pin_RPWM[2]);
-    motorDrive_BTS7960(pin_PWM[3], 0, pin_LPWM[3], pin_RPWM[3]);
+  float _stickValues[4];
+  for (int i = 0; i < 4; ++i) {
+    _stickValues[i] = stickValues[i];
   }
+
+  Wheel_equation(_stickValues);
+  Ramp(Wheels);
+
+#ifdef DEBUG_Wheel
+  Serial.print("LF : ");
+  Serial.print(Ramp_speed[0]);
+  Serial.print(" LB : ");
+  Serial.print(Ramp_speed[1]);
+  Serial.print(" RF : ");
+  Serial.print(Ramp_speed[2]);
+  Serial.print(" RB : ");
+  Serial.println(Ramp_speed[3]);
+#endif
+  motorDrive_BTS7960(pin_PWM[0], Ramp_speed[0], pin_LPWM[0], pin_RPWM[0]);
+  motorDrive_BTS7960(pin_PWM[1], Ramp_speed[1], pin_LPWM[1], pin_RPWM[1]);
+  motorDrive_BTS7960(pin_PWM[2], Ramp_speed[2], pin_LPWM[2], pin_RPWM[2]);
+  motorDrive_BTS7960(pin_PWM[3], Ramp_speed[3], pin_LPWM[3], pin_RPWM[3]);
+
+  // motorDrive_BTS7960(pin_PWM[0], Wheels[0], pin_LPWM[0], pin_RPWM[0]);
+  // motorDrive_BTS7960(pin_PWM[1], Wheels[1], pin_LPWM[1], pin_RPWM[1]);
+  // motorDrive_BTS7960(pin_PWM[2], Wheels[2], pin_LPWM[2], pin_RPWM[2]);
+  // motorDrive_BTS7960(pin_PWM[3], Wheels[3], pin_LPWM[3], pin_RPWM[3]);
 }
 
 
 void ABU_ROBOT ::CLAMP(uint8_t button_Clamp_1, uint8_t button_Clamp_2, uint8_t button_Clamp_Up_Down, uint8_t button_Clamp_Grab_Poll) {
-  if (attack[button_Clamp_1] == 1) {
+  if (move[button_Clamp_1] == 1) {
     if (status_Clamp_1 == 0) {
       status_Clamp_1 = 1;
       digitalWrite(Clamp_1, 1);
@@ -649,7 +689,7 @@ void ABU_ROBOT ::CLAMP(uint8_t button_Clamp_1, uint8_t button_Clamp_2, uint8_t b
   }
 
 
-  if (attack[button_Clamp_2] == 1) {
+  if (move[button_Clamp_2] == 1) {
     if (status_Clamp_2 == 0) {
       status_Clamp_2 = 1;
       digitalWrite(Clamp_2, 1);
@@ -676,7 +716,7 @@ void ABU_ROBOT ::CLAMP(uint8_t button_Clamp_1, uint8_t button_Clamp_2, uint8_t b
   }
 
 
-  if (attack[button_Clamp_Up_Down] == 1) {
+  if (move[button_Clamp_Up_Down] == 1) {
     if (status_Clamp_Up_Down == 0) {
       status_Clamp_Up_Down = 1;
       digitalWrite(Clamp_Up_Down, 1);
@@ -701,9 +741,9 @@ void ABU_ROBOT ::CLAMP(uint8_t button_Clamp_1, uint8_t button_Clamp_2, uint8_t b
 #endif
     }
   }
-  
 
-  if (attack[button_Clamp_Grab_Poll] == 1) {
+
+  if (move[button_Clamp_Grab_Poll] == 1) {
     if (status_Clamp_Grab_Poll == 0) {
       status_Clamp_Grab_Poll = 1;
       digitalWrite(Clamp_Grab_Poll, 1);
@@ -728,30 +768,35 @@ void ABU_ROBOT ::CLAMP(uint8_t button_Clamp_1, uint8_t button_Clamp_2, uint8_t b
 #endif
     }
   }
-
-
 }
 
-void ABU_ROBOT ::KEEP_Ball(uint8_t button_keep, uint8_t button_UnKeep, int32_t force) {
-  if (move[button_keep] == 1) {
-    motorDrive_BTS7960(pin_keep_Ball, force, pin_Keep, pin_UnKeep);
+void ABU_ROBOT ::KEEP_Ball(uint8_t button_keep) {
+  if (attack[button_keep] == 1) {
+    if (status_Keep_ball == 0) {
+      status_Keep_ball = 1;
+      digitalWrite(pin_keep_Ball, 1);
 #ifdef DEBUG_Shoot
-    Serial.print("Catapult : Keep_KEEP ");
+      Serial.print("Catapult : Keep_KEEP ");
 #endif
-
-  } else if (move[button_UnKeep] == 1) {
-      motorDrive_BTS7960(pin_keep_Ball, -force, pin_Keep, pin_UnKeep);
+    } else {
+      status_Keep_ball = 0;
+      digitalWrite(pin_keep_Ball, 0);
 #ifdef DEBUG_Shoot
       Serial.print("Catapult : UnKeep_Ball ");
 #endif
+    }
   } else {
-    motorDrive_BTS7960(pin_keep_Ball, 0, pin_Keep, pin_UnKeep);
+    if (status_Keep_ball == 0) {
 #ifdef DEBUG_Shoot
-    Serial.print("Catapult : Keep_STOP ");
+      Serial.print("Catapult : Keep_KEEP ");
 #endif
+    } else {
+#ifdef DEBUG_Shoot
+      Serial.print("Catapult : UnKeep_Ball ");
+#endif
+    }
   }
 }
-
 void ABU_ROBOT ::Shoot_Ball(uint8_t button_Shoot, uint8_t button_UP, uint8_t button_Reload, int32_t force_Shoot, int32_t force_UP, int32_t force_Reload) {
   if (attack[button_Shoot] == 1) {
     if (digitalRead(Set_Attack_Ball) == 1) {
@@ -759,25 +804,12 @@ void ABU_ROBOT ::Shoot_Ball(uint8_t button_Shoot, uint8_t button_UP, uint8_t but
 #ifdef DEBUG_Shoot
       Serial.println("| Shoot_SHOOT ");
 #endif
-    } else {
-      motorDrive_BTS7960(pin_Shoot, 0, pin_Attack, pin_Reload);
-#ifdef DEBUG_Shoot
-      Serial.println("| Shoot_STOP ");
-#endif
     }
-
   } else if (attack[button_UP] == 1) {
-    if (digitalRead(Set_Attack_Ball) == 1) {
-      motorDrive_BTS7960(pin_Shoot, force_UP, pin_Attack, pin_Reload);
+    motorDrive_BTS7960(pin_Shoot, force_UP, pin_Attack, pin_Reload);
 #ifdef DEBUG_Shoot
-      Serial.println("| Shoot_UP ");
+    Serial.println("| Shoot_UP ");
 #endif
-    } else {
-      motorDrive_BTS7960(pin_Shoot, 0, pin_Attack, pin_Reload);
-#ifdef DEBUG_Shoot
-      Serial.println("| Shoot_STOP ");
-#endif
-    }
 
   } else if (attack[button_Reload] == 1) {
     if (digitalRead(Set_Reload_Ball) == 1) {
@@ -800,12 +832,13 @@ void ABU_ROBOT ::Shoot_Ball(uint8_t button_Shoot, uint8_t button_UP, uint8_t but
   }
 }
 
-void ABU_ROBOT ::UP_speed(uint8_t button_speedUP, uint8_t button_speedDOWN) {
-  if (move[button_speedUP] == 1) {
-    Gear++;
-  } else if (move[button_speedDOWN] == 1) {
-    Gear--;
+void ABU_ROBOT ::UP_speed(uint8_t button_speedDOWN, uint8_t button_speedUP) {
+  if (attack[button_speedUP] == 1) {
+    Gear = 3;
+  } else if (attack[button_speedDOWN] == 1) {
+    Gear = 2;
   }
+
   GEAR();
 }
 ///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
