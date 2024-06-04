@@ -16,8 +16,8 @@ byte type_PS = 0;
 #define pin_G2 26
 #define pin_G3 25
 
-#define button_speedUP 0
-#define button_speedDOWN 2
+#define button_speedUP 4
+#define button_speedDOWN 6
 
 uint8_t broadAddress[6] = { 0x08, 0xD1, 0xF9, 0xE9, 0xB8, 0x24 };
 
@@ -39,15 +39,19 @@ void loop() {
     return;
   }
   if (type_PS != 2) {
-      Joy.set_PS2_0();
-      Joy.PS2_readValue();
+    Joy.set_PS2_0();
+    Joy.PS2_readValue();
 
-      // Joy.Joy_Sendvalue_nRF24();
-      Joy.Joy_Sendvalue_ESPNOW();
+    // Joy.Joy_Sendvalue_nRF24();
+    Joy.Joy_Sendvalue_ESPNOW();
 
-      Joy.Print_GEAR(button_speedUP, button_speedDOWN);
-      Joy.print_PS2();
+    Joy.print_PS2();
 
+    Joy.Print_GEAR(button_speedDOWN, button_speedUP);
+    if (Joy.seting[1] == 1) {
+      Joy.Gear_joy = 0;
+      return;
+    }
   }
 }
 #endif
