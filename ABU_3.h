@@ -20,9 +20,9 @@
 #include <RF24.h>
 
 // #define ESPNOW
-#define I2C
+// #define I2C
 // #define DEBUG_PS2
-// #define DEBUG_Wheel
+#define DEBUG_Wheel
 // #define DEBUG_Clamp
 // #define DEBUG_Shoot
 
@@ -96,7 +96,7 @@ public:
     pinMode(pin_G2, OUTPUT);
     pinMode(pin_G3, OUTPUT);
   }
-  void Print_GEAR(uint8_t button_speedUP, uint8_t button_speedDOWN);
+  void Print_GEAR(uint8_t button_speedDOWN, uint8_t button_speedUP);
 };
 
 
@@ -113,7 +113,7 @@ public:
   float ROBOT_TOTAL_LEN;
   float Wheels_redius;
 
-  float Wheels[4] = { 0, 0, 0, 0 };
+  float Wheels[4] = { 0, 0, 0, 0 }; //{LF ,LB ,RF ,RB}
 
   uint8_t pin_PWM[4];   //{LF_pin ,LB_pin ,RF_pin ,RB_pin}
   uint8_t pin_LPWM[4];  //{LF_pin ,LB_pin ,RF_pin ,RB_pin}
@@ -126,7 +126,19 @@ public:
   float SCALE_FACTOR_Gear_2;
   float SCALE_FACTOR_Gear_3;
 
-  float max_wheel_speed[4] = { 0.0, 150.0, 170.0, 190.0 };
+  float max_wheel_speed[4] = { 0.0, 250.0, 250.0, 250.0 };
+
+  float max_wheel_speed_1[4] = { 190.0, 190.0, 190.0, 190.0 }; //maxspeed_Gear1{LF ,LB ,RF ,RB}
+  float max_wheel_speed_2[4] = { 205.0, 205.0, 205.0, 205.0 }; //maxspeed_Gear2{LF ,LB ,RF ,RB}
+  float max_wheel_speed_3[4] = { 230.0, 230.0, 230.0, 230.0 }; //maxspeed_Gear2{LF ,LB ,RF ,RB}
+
+  float Ramp_speed[4] = { 0.0, 0.0, 0.0, 0.0 };  //{LF_speed ,LB_speed ,RF_speed ,RB_speed} 
+  float Kp;
+  float Ki;
+  float eror_speed[4] = { 0.0, 0.0, 0.0, 0.0 };
+  float Proportional[4] = { 0.0, 0.0, 0.0, 0.0 };
+  float integnator[4] = { 0.0, 0.0, 0.0, 0.0 };
+  float Past_speed[4] = { 0.0, 0.0, 0.0, 0.0 };
 
   void Setup_LF_pin(uint8_t pin_PWM, uint32_t freq, uint8_t resolution_bits, uint8_t _pin_LPWM, uint8_t _pin_RPWM);
   void Setup_LB_pin(uint8_t pin_PWM, uint32_t freq, uint8_t resolution_bits, uint8_t _pin_LPWM, uint8_t _pin_RPWM);
@@ -158,6 +170,13 @@ public:
     SCALE_FACTOR_Gear_3 = _SCALE_FACTOR_Gear_3;
   }
   void GEAR();
+
+  void SetupRamp(float _Kp, float _Ki) {
+    Kp = _Kp;
+    Ki = _Ki;
+  }
+
+  void Ramp(float speed[]);
 };
 
 class ABU_ROBOT : public Joy, public RF24, public Wheel {
@@ -184,8 +203,9 @@ public:
 
   //driver motor keep ball
   uint8_t pin_keep_Ball;
-  uint8_t pin_Keep;
-  uint8_t pin_UnKeep;
+  boolean status_Keep_ball = 0;
+  // uint8_t pin_Keep;
+  // uint8_t pin_UnKeep;
 
   //driver motor shoot ball
   uint8_t pin_Shoot;
@@ -228,29 +248,24 @@ public:
 
   void CLAMP(uint8_t button_Clamp_1, uint8_t button_Clamp_2, uint8_t button_Clamp_Up_Down, uint8_t button_Clamp_Grab_Poll);
 
-  void KEEP_Ball_Setup(uint8_t _pin_keep_Ball, uint8_t _pin_Keep, uint8_t _pin_UnKeep) {
+  void KEEP_Ball_Setup(uint8_t _pin_keep_Ball) {
     pin_keep_Ball = _pin_keep_Ball;
-    pin_Keep = _pin_Keep;
-    pin_UnKeep = _pin_UnKeep;
 
-    ledcSetup_mega2560(pin_keep_Ball, 8000, 8);
+    pinMode(pin_keep_Ball, OUTPUT);//max_wheel_speed_2
   }
-  void KEEP_Ball(uint8_t button_keep, uint8_t button_UnKeep, int32_t force);
+  void KEEP_Ball(uint8_t button_keep);
 
 
-  void Shoot_Ball_Setup(uint8_t _pin_Shoot, uint8_t _pin_Attack, uint8_t _pin_Reload, uint8_t _Set_Attack_Ball, uint8_t _Set_Reload_Ball) {
+  void Shoot_Ball_Setup(uint8_t _pin_Shoot, uint8_t _pin_Attack, uint8_t _pin_Reload) {
     pin_Shoot = _pin_Shoot;
     pin_Attack = _pin_Attack;
     pin_Reload = _pin_Reload;
-    Set_Attack_Ball = _Set_Attack_Ball;
-    Set_Reload_Ball = _Set_Reload_Ball;
 
     ledcSetup_mega2560(pin_Shoot, 8000, 8);
-    pinMode(Set_Attack_Ball, INPUT_PULLUP);
-    pinMode(Set_Reload_Ball, INPUT_PULLUP);
   }
   void Shoot_Ball(uint8_t button_Shoot, uint8_t button_UP, uint8_t button_Reload, int32_t force_Shoot, int32_t force_UP, int32_t force_Reload);
 
-  void UP_speed(uint8_t button_speedUP, uint8_t button_speedDOWN);
+  // void UP_speed(uint8_t button_speedUP, uint8_t button_speedDOWN);
+  void UP_speed(uint8_t button_speedDOWN, uint8_t button_speedUP);
 };
 #endif
