@@ -650,8 +650,8 @@ void ABU_ROBOT ::Move() {
   Serial.println(Ramp_speed[3]);
 #endif
   motorDrive_BTS7960(pin_PWM[0], Ramp_speed[0], pin_LPWM[0], pin_RPWM[0]);
-  motorDrive_BTS7960(pin_PWM[1], Ramp_speed[1], pin_LPWM[1], pin_RPWM[1]);
-  motorDrive_BTS7960(pin_PWM[2], Ramp_speed[2], pin_LPWM[2], pin_RPWM[2]);
+  motorDrive_BTS7960(pin_PWM[1], Ramp_speed[1]*1.135, pin_LPWM[1], pin_RPWM[1]);
+  motorDrive_BTS7960(pin_PWM[2], Ramp_speed[2]*1.135, pin_LPWM[2], pin_RPWM[2]);
   motorDrive_BTS7960(pin_PWM[3], Ramp_speed[3], pin_LPWM[3], pin_RPWM[3]);
 
   // motorDrive_BTS7960(pin_PWM[0], Wheels[0], pin_LPWM[0], pin_RPWM[0]);
