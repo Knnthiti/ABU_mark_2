@@ -298,7 +298,7 @@ void Wheel ::Wheel_equation(float scaled[]) {
   //     inverts[i] = -max_wheel_speed[Gear];
   //   }
   // }
-  
+
   if (Gear == 1) {
     for (uint8_t i = 0; i < 4; i++) {
       if (inverts[i] > (max_wheel_speed_1[i])) {
@@ -307,7 +307,7 @@ void Wheel ::Wheel_equation(float scaled[]) {
         inverts[i] = -max_wheel_speed_1[i];
       }
     }
-  }else if (Gear == 2) {
+  } else if (Gear == 2) {
     for (uint8_t i = 0; i < 4; i++) {
       if (inverts[i] > (max_wheel_speed_2[i])) {
         inverts[i] = max_wheel_speed_2[i];
@@ -315,7 +315,7 @@ void Wheel ::Wheel_equation(float scaled[]) {
         inverts[i] = -max_wheel_speed_2[i];
       }
     }
-  }else if (Gear == 3) {
+  } else if (Gear == 3) {
     for (uint8_t i = 0; i < 4; i++) {
       if (inverts[i] > (max_wheel_speed_3[i])) {
         inverts[i] = max_wheel_speed_3[i];
@@ -356,6 +356,8 @@ void Wheel ::GEAR() {
 }
 
 void Wheel ::Ramp(float speed[]) {
+  status_Ramp = 1;
+
   for (uint8_t n = 0; n < 4; n++) {
     eror_speed[n] = speed[n] - Past_speed[n];
     Proportional[n] = eror_speed[n] * Kp;  //P
@@ -637,27 +639,67 @@ void ABU_ROBOT ::Move() {
   }
 
   Wheel_equation(_stickValues);
+
   Ramp(Wheels);
 
-#ifdef DEBUG_Wheel
-  Serial.print("LF : ");
-  Serial.print(Ramp_speed[0]);
-  Serial.print(" LB : ");
-  Serial.print(Ramp_speed[1]);
-  Serial.print(" RF : ");
-  Serial.print(Ramp_speed[2]);
-  Serial.print(" RB : ");
-  Serial.println(Ramp_speed[3]);
-#endif
-  motorDrive_BTS7960(pin_PWM[0], Ramp_speed[0], pin_LPWM[0], pin_RPWM[0]);
-  motorDrive_BTS7960(pin_PWM[1], Ramp_speed[1]*1.135, pin_LPWM[1], pin_RPWM[1]);
-  motorDrive_BTS7960(pin_PWM[2], Ramp_speed[2]*1.135, pin_LPWM[2], pin_RPWM[2]);
-  motorDrive_BTS7960(pin_PWM[3], Ramp_speed[3], pin_LPWM[3], pin_RPWM[3]);
+  if (status_Ramp == 1) {
+    for (uint8_t i = 0; i < 4; i++) {
+      Ramp_speed[0] = Ramp_speed[0] * 1.2;
+      Ramp_speed[1] = Ramp_speed[1] * 1.135;
+      Ramp_speed[2] = Ramp_speed[2] * 1.0;
+      Ramp_speed[3] = Ramp_speed[3] * 1.2;
 
-  // motorDrive_BTS7960(pin_PWM[0], Wheels[0], pin_LPWM[0], pin_RPWM[0]);
-  // motorDrive_BTS7960(pin_PWM[1], Wheels[1], pin_LPWM[1], pin_RPWM[1]);
-  // motorDrive_BTS7960(pin_PWM[2], Wheels[2], pin_LPWM[2], pin_RPWM[2]);
-  // motorDrive_BTS7960(pin_PWM[3], Wheels[3], pin_LPWM[3], pin_RPWM[3]);
+      Ramp_speed[i] = round(Ramp_speed[i]);
+    }
+  }else{
+    for (uint8_t i = 0; i < 4; i++) {
+      Wheels[0] = Wheels[0] * 1.2;
+      Wheels[1] = Wheels[1] * 1.135;
+      Wheels[2] = Wheels[2] * 1.0;
+      Wheels[3] = Wheels[3] * 1.2;
+
+      Wheels[i] = round(Wheels[i]);
+    }
+  }
+
+#ifdef DEBUG_Wheel
+  if (status_Ramp == 1) {
+    Serial.print("LF : ");
+    Serial.print(Ramp_speed[0]);
+    Serial.print(" LB : ");
+    Serial.print(Ramp_speed[1]);
+    Serial.print(" RF : ");
+    Serial.print(Ramp_speed[2]);
+    Serial.print(" RB : ");
+    Serial.println(Ramp_speed[3]);
+  } else {
+    Serial.print("LF : ");
+    Serial.print(Wheels[0]);
+    Serial.print(" LB : ");
+    Serial.print(Wheels[1]);
+    Serial.print(" RF : ");
+    Serial.print(Wheels[2]);
+    Serial.print(" RB : ");
+    Serial.println(Wheels[3]);
+  }
+#endif
+
+  if (status_Ramp == 1) {
+    motorDrive_BTS7960(pin_PWM[0], Ramp_speed[0], pin_LPWM[0], pin_RPWM[0]);
+    motorDrive_BTS7960(pin_PWM[1], Ramp_speed[1], pin_LPWM[1], pin_RPWM[1]);
+    motorDrive_BTS7960(pin_PWM[2], Ramp_speed[2], pin_LPWM[2], pin_RPWM[2]);
+    motorDrive_BTS7960(pin_PWM[3], Ramp_speed[3], pin_LPWM[3], pin_RPWM[3]);
+  } else {
+    motorDrive_BTS7960(pin_PWM[0], Wheels[0], pin_LPWM[0], pin_RPWM[0]);
+    motorDrive_BTS7960(pin_PWM[1], Wheels[1], pin_LPWM[1], pin_RPWM[1]);
+    motorDrive_BTS7960(pin_PWM[2], Wheels[2], pin_LPWM[2], pin_RPWM[2]);
+    motorDrive_BTS7960(pin_PWM[3], Wheels[3], pin_LPWM[3], pin_RPWM[3]);
+  }
+
+  // motorDrive_BTS7960(pin_PWM[0], Ramp_speed[0], pin_LPWM[0], pin_RPWM[0]);
+  // motorDrive_BTS7960(pin_PWM[1], Ramp_speed[1]*1.135, pin_LPWM[1], pin_RPWM[1]);
+  // motorDrive_BTS7960(pin_PWM[2], Ramp_speed[2]*1.135, pin_LPWM[2], pin_RPWM[2]);
+  // motorDrive_BTS7960(pin_PWM[3], Ramp_speed[3], pin_LPWM[3], pin_RPWM[3]);
 }
 
 
@@ -799,7 +841,7 @@ void ABU_ROBOT ::KEEP_Ball(uint8_t button_keep) {
 }
 void ABU_ROBOT ::Shoot_Ball(uint8_t button_Shoot, uint8_t button_UP, uint8_t button_Reload, int32_t force_Shoot, int32_t force_UP, int32_t force_Reload) {
   if (attack[button_Shoot] == 1) {
-    if (digitalRead(Set_Attack_Ball) == 1) {
+    if (status_Keep_ball == 0) {
       motorDrive_BTS7960(pin_Shoot, force_Shoot, pin_Attack, pin_Reload);
 #ifdef DEBUG_Shoot
       Serial.println("| Shoot_SHOOT ");
